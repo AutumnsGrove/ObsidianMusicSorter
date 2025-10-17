@@ -153,10 +153,11 @@ class MusicEnricher:
 
             # If no MBID, search by name
             if not mbid:
+                # Use name from frontmatter, or fallback to filename without extension
                 artist_name = post.get("name")
                 if not artist_name:
-                    self.logger.warning(f"No name found in artist file: {file_path}")
-                    return False
+                    artist_name = file_path.stem  # filename without .md extension
+                    self.logger.debug(f"Using filename as artist name: {artist_name}")
 
                 # Log progress with current index and artist name
                 if total > 0:
@@ -238,10 +239,11 @@ class MusicEnricher:
 
             # If no MBID, search by name
             if not mbid:
+                # Use name from frontmatter, or fallback to filename without extension
                 album_name = post.get("name")
                 if not album_name:
-                    self.logger.warning(f"No name found in album file: {file_path}")
-                    return False
+                    album_name = file_path.stem  # filename without .md extension
+                    self.logger.debug(f"Using filename as album name: {album_name}")
 
                 # Get artist name if available for better search accuracy
                 artist_name = post.get("artist")
@@ -331,7 +333,8 @@ class MusicEnricher:
                 post = frontmatter.load(f)
 
             # Check if file has a name (required for searching)
-            name = post.get("name")
+            # Allow files without name - we'll use filename as fallback
+            name = post.get("name") or file_path.stem
             if not name:
                 return False
 

@@ -25,7 +25,7 @@ class ArtistMetadata(BaseModel):
         ..., description="Unique MusicBrainz identifier for the artist"
     )
     name: str = Field(..., description="Primary name of the artist")
-    sort_name: str = Field(..., description="Name used for alphabetical sorting")
+    sort_name: Optional[str] = Field(None, description="Name used for alphabetical sorting")
     country: Optional[str] = Field(None, description="Country of artist's origin")
     formed: Optional[str] = Field(
         None, description="Year or date the artist/band was formed"

@@ -45,9 +45,20 @@ def scan_vault(vault_path: str) -> Dict[str, List[Path]]:
             # Check if frontmatter contains type
             file_type = parsed_file.get("type")
 
+            # If no type in frontmatter, infer from directory structure
             if not file_type:
-                logger.warning(f"No type found in {md_file}. Skipping.")
-                continue
+                # Get the parent directory name
+                parent_dir = md_file.parent.name.lower()
+
+                if parent_dir == "artists":
+                    file_type = "artist"
+                    logger.debug(f"Inferred type 'artist' from directory for {md_file}")
+                elif parent_dir == "albums":
+                    file_type = "album"
+                    logger.debug(f"Inferred type 'album' from directory for {md_file}")
+                else:
+                    logger.warning(f"No type found in {md_file} and couldn't infer from directory '{parent_dir}'. Skipping.")
+                    continue
 
             # Categorize based on type
             if file_type == "artist":
@@ -72,6 +83,7 @@ def scan_vault(vault_path: str) -> Dict[str, List[Path]]:
 def get_file_type(file_path: Path) -> Optional[str]:
     """
     Retrieve the type of a markdown file from its frontmatter.
+    If not found in frontmatter, infer from directory structure.
 
     Args:
         file_path (Path): Path to the markdown file
@@ -82,7 +94,17 @@ def get_file_type(file_path: Path) -> Optional[str]:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             parsed_file = frontmatter.load(f)
-            return parsed_file.get("type")
+            file_type = parsed_file.get("type")
+
+            # If no type in frontmatter, infer from directory structure
+            if not file_type:
+                parent_dir = file_path.parent.name.lower()
+                if parent_dir == "artists":
+                    return "artist"
+                elif parent_dir == "albums":
+                    return "album"
+
+            return file_type
     except Exception as e:
         logger.error(f"Error parsing {file_path}: {e}")
         return None
