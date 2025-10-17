@@ -194,9 +194,14 @@ class MusicEnricher:
                     self.logger.warning(f"Failed to fetch metadata for artist MBID: {mbid}")
                 return False
 
+            # Fetch notable albums for body content
+            notable_albums = self.api_client.get_artist_albums(mbid, limit=10)
+
             # Write enriched metadata
             if not self.config.dry_run:
-                self.metadata_writer.update_artist_file(file_path, artist_metadata.model_dump())
+                self.metadata_writer.update_artist_file(
+                    file_path, artist_metadata.model_dump(), notable_albums=notable_albums
+                )
 
             # Log successful processing with progress
             if total > 0:
@@ -285,9 +290,9 @@ class MusicEnricher:
                 self.logger.info(f"Found MBID {mbid} for album: {album_name}")
 
             # Fetch full album metadata from MusicBrainz
-            album_metadata = self.api_client.get_album_by_mbid(mbid)
+            result = self.api_client.get_album_by_mbid(mbid)
 
-            if not album_metadata:
+            if not result:
                 # Log metadata fetch failure with progress
                 if total > 0:
                     self.logger.warning(
@@ -297,12 +302,16 @@ class MusicEnricher:
                     self.logger.warning(f"Failed to fetch metadata for album MBID: {mbid}")
                 return False
 
+            album_metadata, track_names = result
+
             # Convert to dict for metadata processing
             album_dict = album_metadata.model_dump()
 
             # Write enriched metadata
             if not self.config.dry_run:
-                self.metadata_writer.update_album_file(file_path, album_dict)
+                self.metadata_writer.update_album_file(
+                    file_path, album_dict, track_names=track_names
+                )
 
             # Log successful processing with progress
             if total > 0:

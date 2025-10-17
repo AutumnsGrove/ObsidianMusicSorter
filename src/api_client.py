@@ -79,7 +79,7 @@ class MusicBrainzClient:
             self.logger.error(f"Error fetching artist {mbid}: {e}")
             return None
 
-    def get_album_by_mbid(self, mbid: str) -> Optional[AlbumMetadata]:
+    def get_album_by_mbid(self, mbid: str) -> Optional[tuple[AlbumMetadata, List[str]]]:
         """
         Fetch album/release data by MusicBrainz ID.
 
@@ -87,7 +87,7 @@ class MusicBrainzClient:
             mbid (str): MusicBrainz ID of the album/release.
 
         Returns:
-            Optional[AlbumMetadata]: Parsed album metadata or None if not found.
+            Optional[tuple[AlbumMetadata, List[str]]]: Tuple of (album metadata, track names) or None if not found.
         """
         try:
             self._enforce_rate_limit()
@@ -101,7 +101,7 @@ class MusicBrainzClient:
                 for track in release.get("medium-list", [])[0].get("track-list", [])
             ]
 
-            return AlbumMetadata(
+            album_metadata = AlbumMetadata(
                 musicbrainz_id=mbid,
                 title=release.get("title", ""),
                 artist=release["artist-credit"][0]["artist"]["name"],
@@ -112,6 +112,8 @@ class MusicBrainzClient:
                 genres=[tag["name"] for tag in release.get("tag-list", [])],
                 cover=f"https://coverartarchive.org/release/{mbid}/front",
             )
+
+            return (album_metadata, track_names)
         except mb.MusicBrainzError as e:
             self.logger.error(f"Error fetching album {mbid}: {e}")
             return None
@@ -194,7 +196,7 @@ class MusicBrainzClient:
         """
         try:
             self._enforce_rate_limit()
-            result = mb.get_artist_by_id(mbid, includes=["release-groups"], limit=limit)
+            result = mb.get_artist_by_id(mbid, includes=["release-groups"])
             artist = result["artist"]
 
             release_groups = artist.get("release-group-list", [])

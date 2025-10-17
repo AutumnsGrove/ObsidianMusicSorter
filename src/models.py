@@ -41,6 +41,9 @@ class ArtistMetadata(BaseModel):
         None,
         description="Additional context to distinguish between artists with similar names",
     )
+    cover: Optional[str] = Field(
+        None, description="URL to artist cover art/photo from Cover Art Archive"
+    )
 
 
 class AlbumMetadata(BaseModel):
@@ -87,6 +90,9 @@ class AlbumMetadata(BaseModel):
     )
     status: Optional[str] = Field(
         None, description="Release status (e.g., 'official', 'promotional')"
+    )
+    cover: Optional[str] = Field(
+        None, description="URL to album cover art from Cover Art Archive"
     )
 
 
