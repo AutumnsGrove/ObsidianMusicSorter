@@ -352,6 +352,11 @@ class MusicEnricher:
             if not name:
                 return False
 
+            # If refresh_all is enabled, process all files regardless of completeness
+            if self.config.refresh_all:
+                self.logger.info(f"Processing {file_path.name} (refresh-all mode)")
+                return True
+
             # Check if file already has complete metadata
             mbid = post.get("musicbrainz_id") or post.get("mbid")
             genres = post.get("genres", [])

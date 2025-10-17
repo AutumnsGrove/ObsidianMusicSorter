@@ -51,6 +51,11 @@ def cli() -> None:
     help="Run without making changes, preview potential enrichments",
 )
 @click.option(
+    "--refresh-all",
+    is_flag=True,
+    help="Re-process all files, ignoring existing metadata completeness",
+)
+@click.option(
     "--rate-limit",
     type=float,
     default=2.0,
@@ -62,7 +67,7 @@ def cli() -> None:
     default="INFO",
     help="Set the logging verbosity",
 )
-def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) -> None:
+def enrich(vault_path: str, dry_run: bool, refresh_all: bool, rate_limit: float, log_level: str) -> None:
     """Enrich music metadata in Obsidian vault at VAULT_PATH.
 
     Scans the vault, retrieves additional music metadata, and updates notes.
@@ -70,6 +75,7 @@ def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) ->
     Args:
         vault_path (str): Path to the Obsidian vault
         dry_run (bool): Preview changes without applying them
+        refresh_all (bool): Re-process all files regardless of existing metadata
         rate_limit (float): Time between API calls
         log_level (str): Logging verbosity level
     """
@@ -78,7 +84,12 @@ def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) ->
     logger = logging.getLogger(__name__)
 
     try:
-        config = Config(vault_path=vault_path, dry_run=dry_run, rate_limit_seconds=rate_limit)
+        config = Config(
+            vault_path=vault_path,
+            dry_run=dry_run,
+            refresh_all=refresh_all,
+            rate_limit_seconds=rate_limit
+        )
         enricher = MusicEnricher(config)
 
         results = enricher.enrich_vault()

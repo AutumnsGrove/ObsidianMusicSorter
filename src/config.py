@@ -33,6 +33,11 @@ class Config(BaseModel):
         description="When True, simulates actions without making actual changes"
     )
 
+    refresh_all: bool = Field(
+        default=False,
+        description="When True, re-processes all files regardless of existing metadata"
+    )
+
     # Logging configuration
     log_level: str = Field(
         default="INFO",
@@ -86,4 +91,5 @@ if __name__ == "__main__":
     print(f"Vault Path: {config.vault_path}")
     print(f"Rate Limit: {config.rate_limit_seconds} seconds")
     print(f"Dry Run Mode: {config.dry_run}")
+    print(f"Refresh All: {config.refresh_all}")
     print(f"Log Level: {config.log_level}")
