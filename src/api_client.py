@@ -61,7 +61,7 @@ class MusicBrainzClient:
         """
         try:
             self._enforce_rate_limit()
-            result = mb.get_artist_by_id(mbid, includes=["tags"])
+            result = mb.get_artist_by_id(mbid, includes=["tags", "release-groups"])
             artist = result["artist"]
 
             return ArtistMetadata(
@@ -73,6 +73,7 @@ class MusicBrainzClient:
                 begin_date=self._format_date(artist.get("life-span", {})),
                 end_date=self._format_date(artist.get("life-span", {}), end=True),
                 genres=[tag["name"] for tag in artist.get("tag-list", [])],
+                cover=None,
             )
         except mb.MusicBrainzError as e:
             self.logger.error(f"Error fetching artist {mbid}: {e}")
@@ -109,6 +110,7 @@ class MusicBrainzClient:
                 country=release.get("country"),
                 track_count=len(track_names),
                 genres=[tag["name"] for tag in release.get("tag-list", [])],
+                cover=f"https://coverartarchive.org/release/{mbid}/front",
             )
         except mb.MusicBrainzError as e:
             self.logger.error(f"Error fetching album {mbid}: {e}")
@@ -177,6 +179,39 @@ class MusicBrainzClient:
             ]
         except mb.MusicBrainzError as e:
             self.logger.error(f"Error searching album {title}: {e}")
+            return []
+
+    def get_artist_albums(self, mbid: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Fetch notable albums/releases for an artist.
+
+        Args:
+            mbid (str): MusicBrainz ID of the artist.
+            limit (int, optional): Maximum number of albums to return. Defaults to 10.
+
+        Returns:
+            List[Dict[str, Any]]: List of album information dictionaries.
+        """
+        try:
+            self._enforce_rate_limit()
+            result = mb.get_artist_by_id(mbid, includes=["release-groups"], limit=limit)
+            artist = result["artist"]
+
+            release_groups = artist.get("release-group-list", [])
+
+            albums = []
+            for rg in release_groups[:limit]:
+                if rg.get("type") in ["Album", "EP", None]:
+                    albums.append({
+                        "title": rg.get("title", ""),
+                        "mbid": rg.get("id", ""),
+                        "type": rg.get("type", "Album"),
+                        "date": rg.get("first-release-date", ""),
+                    })
+
+            return albums[:limit]
+        except mb.MusicBrainzError as e:
+            self.logger.error(f"Error fetching albums for artist {mbid}: {e}")
             return []
 
     @staticmethod
