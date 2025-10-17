@@ -1,0 +1,14 @@
+# Core Data Validation and Configuration
+pydantic>=2.0,<3.0
+
+# Markdown and Configuration Parsing
+python-frontmatter>=1.0.0
+pyyaml>=6.0,<7.0
+python-dotenv>=1.0.0
+
+# Logging and Console Output
+colorlog>=6.7.0
+rich>=10.0.0
+
+# Music Metadata API (for Phase 2)
+musicbrainzngs>=0.7,<0.8
