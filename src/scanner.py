@@ -10,9 +10,9 @@ from typing import Dict, List, Optional
 import frontmatter
 import logging
 
-from .logger_setup import get_logger
+from .logger_setup import setup_logger
 
-logger = get_logger(__name__)
+logger = setup_logger(__name__)
 
 
 def scan_vault(vault_path: str) -> Dict[str, List[Path]]:
@@ -59,7 +59,7 @@ def scan_vault(vault_path: str) -> Dict[str, List[Path]]:
 
         except (IOError, OSError) as e:
             logger.error(f"Error reading {md_file}: {e}")
-        except frontmatter.ParseException as e:
+        except Exception as e:
             logger.error(f"Invalid YAML frontmatter in {md_file}: {e}")
 
     logger.info(
@@ -83,7 +83,7 @@ def get_file_type(file_path: Path) -> Optional[str]:
         with open(file_path, "r", encoding="utf-8") as f:
             parsed_file = frontmatter.load(f)
             return parsed_file.get("type")
-    except (IOError, frontmatter.ParseException) as e:
+    except Exception as e:
         logger.error(f"Error parsing {file_path}: {e}")
         return None
 

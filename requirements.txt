@@ -12,3 +12,6 @@ rich>=10.0.0
 
 # Music Metadata API (for Phase 2)
 musicbrainzngs>=0.7,<0.8
+
+# CLI Framework
+click>=8.1.0

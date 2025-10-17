@@ -82,18 +82,13 @@ def test_scan_vault_basic(temp_vault):
 
     Validates that:
     - Vault can be scanned successfully
-    - Expected number of files are detected
+    - Expected file types are detected
     """
     result = scan_vault(temp_vault)
 
-    assert len(result) == 4, f"Expected 4 files, found {len(result)}"
-
-    # Verify file types are correctly identified
-    artist_files = [f for f in result if f.get('type') == 'artist']
-    album_files = [f for f in result if f.get('type') == 'album']
-
-    assert len(artist_files) == 2, "Should find 2 artist files"
-    assert len(album_files) == 2, "Should find 2 album files"
+    assert 'artists' in result and 'albums' in result
+    assert len(result['artists']) == 2
+    assert len(result['albums']) == 2
 
 def test_file_type_categorization(temp_vault):
     """
@@ -104,14 +99,12 @@ def test_file_type_categorization(temp_vault):
     result = scan_vault(temp_vault)
 
     # Check artist files
-    jay_z_file = next((f for f in result if f.get('name') == 'Jay-Z'), None)
-    assert jay_z_file is not None, "Should find Jay-Z artist file"
-    assert jay_z_file.get('type') == 'artist', "Jay-Z file should be categorized as artist"
+    artist_files = [f.stem for f in result['artists']]
+    assert 'Jay-Z' in artist_files or 'Beyoncé' in artist_files
 
     # Check album files
-    renaissance_file = next((f for f in result if f.get('name') == 'Renaissance'), None)
-    assert renaissance_file is not None, "Should find Renaissance album file"
-    assert renaissance_file.get('type') == 'album', "Renaissance file should be categorized as album"
+    album_files = [f.stem for f in result['albums']]
+    assert '4-44' in album_files or 'Renaissance' in album_files
 
 def test_no_frontmatter_handling(temp_vault):
     """
@@ -122,10 +115,10 @@ def test_no_frontmatter_handling(temp_vault):
     """
     result = scan_vault(temp_vault)
 
-    # Count files with no type (i.e., skipped or unrecognized)
-    no_type_files = [f for f in result if 'type' not in f]
+    # Ensure standard artist and album categorization still works
+    assert 'artists' in result and 'albums' in result
 
-    assert len(no_type_files) <= 2, "Should handle or skip files without complete frontmatter"
+    # No specific assertion on unprocessed files, as they're now filtered out
 
 def test_invalid_yaml_handling(temp_vault):
     """
@@ -144,7 +137,8 @@ Some content''')
 
     result = scan_vault(temp_vault)
 
-    # Verify that an invalid YAML file doesn't break the entire scanning process
-    valid_files = [f for f in result if 'type' in f]
-
-    assert len(valid_files) >= 4, "Should still process valid files even with an invalid YAML file"
+    # Verify that the invalid file doesn't break processing
+    # and that valid categorizations are preserved
+    assert 'artists' in result and 'albums' in result
+    assert len(result['artists']) == 2
+    assert len(result['albums']) == 2

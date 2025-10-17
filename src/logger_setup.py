@@ -17,7 +17,7 @@ except ImportError:
     COLORLOG_AVAILABLE = False
 
 
-def setup_logger(log_level: str = "INFO", name: Optional[str] = None) -> logging.Logger:
+def setup_logger(name: Optional[str] = None, log_level: str = "INFO") -> logging.Logger:
     """
     Setup a structured logger with console output.
 
@@ -26,11 +26,11 @@ def setup_logger(log_level: str = "INFO", name: Optional[str] = None) -> logging
     can be configured, and the logger is named after the calling module.
 
     Args:
+        name (str, optional): Name of the logger.
+            Defaults to None, which uses the root logger.
         log_level (str, optional): Logging level.
             Supported levels: DEBUG, INFO, WARNING, ERROR, CRITICAL.
             Defaults to "INFO".
-        name (str, optional): Name of the logger.
-            Defaults to None, which uses the root logger.
 
     Returns:
         logging.Logger: Configured logger instance.
@@ -102,7 +102,7 @@ def setup_logger(log_level: str = "INFO", name: Optional[str] = None) -> logging
 # Example usage when module is run directly
 if __name__ == "__main__":
     # Demonstrate logger usage with different log levels
-    logger = setup_logger(log_level="DEBUG")
+    logger = setup_logger(name=__name__, log_level="DEBUG")
     logger.debug("This is a debug message")
     logger.info("This is an info message")
     logger.warning("This is a warning message")
