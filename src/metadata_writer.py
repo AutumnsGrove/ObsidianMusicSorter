@@ -56,6 +56,9 @@ class MetadataWriter:
             # Merge metadata intelligently
             merged_metadata = self._merge_frontmatter(existing_metadata, metadata.model_dump())
 
+            # Add type field for artist
+            merged_metadata["type"] = "artist"
+
             # Prepare updated post
             post.metadata = merged_metadata
 
@@ -113,6 +116,9 @@ class MetadataWriter:
 
             # Merge metadata intelligently
             merged_metadata = self._merge_frontmatter(existing_metadata, metadata_dict)
+
+            # Add type field for album
+            merged_metadata["type"] = "album"
 
             # Prepare updated post
             post.metadata = merged_metadata

@@ -307,10 +307,10 @@ class MusicEnricher:
             # Log successful processing with progress
             if total > 0:
                 self.logger.info(
-                    f"Successfully processed album {current} of {total}: {album_dict['name']}"
+                    f"Successfully processed album {current} of {total}: {album_dict.get('title', album_dict.get('name', 'Unknown'))}"
                 )
             else:
-                self.logger.info(f"Successfully processed album: {album_dict['name']}")
+                self.logger.info(f"Successfully processed album: {album_dict.get('title', album_dict.get('name', 'Unknown'))}")
 
             return True
         except Exception as e:
@@ -338,16 +338,21 @@ class MusicEnricher:
             with open(file_path, "r", encoding="utf-8") as f:
                 post = frontmatter.load(f)
 
-            # Check if file has a name (required for searching)
-            # Allow files without name - we'll use filename as fallback
-            name = post.get("name") or file_path.stem
+            # Must have a name/title (use filename as fallback)
+            name = post.get("name") or post.get("title") or file_path.stem
             if not name:
                 return False
 
-            # If MBID already exists, we still process to enrich other fields
-            # Add more sophisticated checks if needed, e.g.:
-            # - Check if existing metadata is complete
-            # - Respect config settings for forced re-processing
+            # Check if file already has complete metadata
+            mbid = post.get("musicbrainz_id") or post.get("mbid")
+            genres = post.get("genres", [])
+
+            # Skip if already complete (has MBID and genres)
+            if mbid and genres and len(genres) > 0:
+                self.logger.info(f"Skipping {file_path.name} - already enriched")
+                return False
+
             return True
-        except Exception:
+        except Exception as e:
+            self.logger.error(f"Error checking file {file_path}: {e}")
             return False
