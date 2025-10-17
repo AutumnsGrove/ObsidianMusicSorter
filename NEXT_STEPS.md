@@ -14,6 +14,23 @@
 
 ## Issues to Address Before Phase 2
 
+### 0. Write Type Field During Enrichment
+**Problem:** The `type` field (artist/album) is inferred during scanning but not written to files
+
+**Solution Needed:**
+- In `metadata_writer.py`, ensure we write the `type` field
+- For artist files: set `type: artist`
+- For album files: set `type: album`
+
+**Fix in `src/metadata_writer.py`:**
+```python
+# In update_artist_file():
+post["type"] = "artist"
+
+# In update_album_file():
+post["type"] = "album"
+```
+
 ### 1. Obsidian Link Aliases
 **Problem:** Obsidian uses pipe syntax for link aliases:
 ```markdown
