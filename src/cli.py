@@ -44,12 +44,7 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option(
-    "--vault-path",
-    type=click.Path(exists=True),
-    required=True,
-    help="Path to Obsidian vault containing music notes",
-)
+@click.argument('vault_path', type=click.Path(exists=True))
 @click.option(
     "--dry-run",
     is_flag=True,
@@ -68,7 +63,7 @@ def cli() -> None:
     help="Set the logging verbosity",
 )
 def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) -> None:
-    """Enrich music metadata in Obsidian vault.
+    """Enrich music metadata in Obsidian vault at VAULT_PATH.
 
     Scans the vault, retrieves additional music metadata, and updates notes.
 
@@ -115,14 +110,9 @@ def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) ->
 
 
 @cli.command()
-@click.option(
-    "--vault-path",
-    type=click.Path(exists=True),
-    required=True,
-    help="Path to Obsidian vault containing music notes",
-)
+@click.argument('vault_path', type=click.Path(exists=True))
 def scan(vault_path: str) -> None:
-    """Scan vault and show files that would be processed.
+    """Scan vault at VAULT_PATH and show files that would be processed.
 
     Provides a preview of files that could be enriched without making changes.
 
@@ -154,14 +144,9 @@ def scan(vault_path: str) -> None:
 
 
 @cli.command()
-@click.option(
-    "--vault-path",
-    type=click.Path(exists=True),
-    required=True,
-    help="Path to Obsidian vault containing music notes",
-)
+@click.argument('vault_path', type=click.Path(exists=True))
 def validate(vault_path: str) -> None:
-    """Validate existing metadata completeness.
+    """Validate existing metadata completeness in VAULT_PATH.
 
     Checks music files for missing or incomplete metadata.
 

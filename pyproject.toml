@@ -1,0 +1,49 @@
+[build-system]
+# Specify hatchling as the build backend
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+# Project metadata
+name = "music-metadata-enhancer"
+version = "0.1.0"
+description = "Enrich Obsidian markdown files for music artists and albums with MusicBrainz metadata"
+authors = [
+    {name = "Autumn", email = "autumn@example.com"}
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.10"
+
+# Dependencies from requirements.txt
+dependencies = [
+    "pydantic>=2.0,<3.0",
+    "python-frontmatter>=1.0.0",
+    "pyyaml>=6.0,<7.0",
+    "python-dotenv>=1.0.0",
+    "colorlog>=6.7.0",
+    "rich>=10.0.0",
+    "musicbrainzngs>=0.7,<0.8",
+    "click>=8.1.0",
+    "unidecode"
+]
+
+# CLI entry points
+[project.scripts]
+music-metadata-enhancer = "src.cli:cli"
+mme = "src.cli:cli"
+
+# Optional dependencies for development
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "black>=24.0.0"
+]
+
+# Black configuration for code formatting
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
