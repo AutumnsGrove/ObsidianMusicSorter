@@ -173,3 +173,41 @@ class MetadataWriter:
                 merged[key] = value
 
         return merged
+
+    def update_artist_file(self, file_path: Path, metadata: Dict[str, Any]) -> bool:
+        """
+        Update an artist file with metadata from MusicBrainz.
+
+        Args:
+            file_path (Path): Path to the artist markdown file
+            metadata (Dict[str, Any]): Metadata dictionary from MusicBrainz
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Convert dict to ArtistMetadata model
+            artist_metadata = ArtistMetadata(**metadata)
+            return self.write_artist_metadata(file_path, artist_metadata, dry_run=False)
+        except Exception as e:
+            self.logger.error(f"Error updating artist file {file_path}: {e}")
+            return False
+
+    def update_album_file(self, file_path: Path, metadata: Dict[str, Any]) -> bool:
+        """
+        Update an album file with metadata from MusicBrainz.
+
+        Args:
+            file_path (Path): Path to the album markdown file
+            metadata (Dict[str, Any]): Metadata dictionary from MusicBrainz
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Convert dict to AlbumMetadata model
+            album_metadata = AlbumMetadata(**metadata)
+            return self.write_album_metadata(file_path, album_metadata, dry_run=False)
+        except Exception as e:
+            self.logger.error(f"Error updating album file {file_path}: {e}")
+            return False

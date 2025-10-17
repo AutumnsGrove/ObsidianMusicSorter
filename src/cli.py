@@ -78,7 +78,7 @@ def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) ->
     logger = logging.getLogger(__name__)
 
     try:
-        config = Config(vault_path=vault_path, dry_run=dry_run, rate_limit=rate_limit)
+        config = Config(vault_path=vault_path, dry_run=dry_run, rate_limit_seconds=rate_limit)
         enricher = MusicEnricher(config)
 
         results = enricher.enrich_vault()
@@ -88,17 +88,17 @@ def enrich(vault_path: str, dry_run: bool, rate_limit: float, log_level: str) ->
         table.add_column("Metric", style="cyan")
         table.add_column("Count", style="magenta")
 
-        table.add_row("Total Files Found", str(results.total_files))
-        table.add_row("Files Processed", str(results.processed_files))
-        table.add_row("Files Enriched", str(results.enriched_files))
-        table.add_row("Files Skipped", str(results.skipped_files))
-        table.add_row("Errors", str(results.error_files))
+        table.add_row("Total Files Found", str(results['total_files']))
+        table.add_row("Files Processed", str(results['processed_files']))
+        table.add_row("Files Enriched", str(results['enriched_files']))
+        table.add_row("Files Skipped", str(results['skipped_files']))
+        table.add_row("Errors", str(results['error_files']))
 
         console.print(table)
 
-        if results.error_files > 0:
+        if results['error_files'] > 0:
             logger.warning(
-                f"Encountered {results.error_files} errors during enrichment"
+                f"Encountered {results['error_files']} errors during enrichment"
             )
             sys.exit(1)
 

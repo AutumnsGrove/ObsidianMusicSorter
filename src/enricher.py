@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 import logging
+import frontmatter
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
 from src.config import Config
@@ -39,16 +40,16 @@ class MusicEnricher:
         self.config = config
         self.logger = setup_logger(__name__)
 
-        self.api_client = MusicBrainzClient(config)
-        self.metadata_writer = MetadataWriter(config)
+        self.api_client = MusicBrainzClient(rate_limit_seconds=config.rate_limit_seconds)
+        self.metadata_writer = MetadataWriter()
 
         # Enrichment statistics
         self.stats = {
-            'total_files': 0,
-            'processed_files': 0,
-            'enriched_files': 0,
-            'skipped_files': 0,
-            'error_files': 0
+            "total_files": 0,
+            "processed_files": 0,
+            "enriched_files": 0,
+            "skipped_files": 0,
+            "error_files": 0,
         }
 
     def enrich_vault(self, progress_callback: Optional[callable] = None) -> Dict[str, Any]:
@@ -64,57 +65,61 @@ class MusicEnricher:
         self.logger.info("Starting vault enrichment process")
 
         # Find markdown files to process
-        files = scan_vault(self.config.vault_path)
-        artist_files = [f for f in files if 'example_artist_' in str(f)]
-        album_files = [f for f in files if 'example_album_' in str(f)]
+        scan_results = scan_vault(self.config.vault_path)
+        artist_files = scan_results["artists"]
+        album_files = scan_results["albums"]
 
-        self.stats['total_files'] = len(files)
+        self.stats["total_files"] = len(artist_files) + len(album_files)
 
         # Use Rich Progress for beautiful progress tracking
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            TaskProgressColumn()
+            TaskProgressColumn(),
         ) as progress:
             # Process artist files first
             artist_task = progress.add_task("[cyan]Processing Artists", total=len(artist_files))
-            for artist_file in artist_files:
+            for idx, artist_file in enumerate(artist_files, start=1):
                 try:
                     if self._should_process_file(artist_file):
-                        success = self._process_artist_file(artist_file)
+                        success = self._process_artist_file(
+                            artist_file, current=idx, total=len(artist_files)
+                        )
                         if success:
-                            self.stats['enriched_files'] += 1
+                            self.stats["enriched_files"] += 1
                         else:
-                            self.stats['skipped_files'] += 1
+                            self.stats["skipped_files"] += 1
                     else:
-                        self.stats['skipped_files'] += 1
+                        self.stats["skipped_files"] += 1
 
-                    self.stats['processed_files'] += 1
+                    self.stats["processed_files"] += 1
                     progress.update(artist_task, advance=1)
                 except Exception as e:
                     self.logger.error(f"Error processing artist file {artist_file}: {e}")
-                    self.stats['error_files'] += 1
+                    self.stats["error_files"] += 1
                     progress.update(artist_task, advance=1)
 
             # Then process album files
             album_task = progress.add_task("[magenta]Processing Albums", total=len(album_files))
-            for album_file in album_files:
+            for idx, album_file in enumerate(album_files, start=1):
                 try:
                     if self._should_process_file(album_file):
-                        success = self._process_album_file(album_file)
+                        success = self._process_album_file(
+                            album_file, current=idx, total=len(album_files)
+                        )
                         if success:
-                            self.stats['enriched_files'] += 1
+                            self.stats["enriched_files"] += 1
                         else:
-                            self.stats['skipped_files'] += 1
+                            self.stats["skipped_files"] += 1
                     else:
-                        self.stats['skipped_files'] += 1
+                        self.stats["skipped_files"] += 1
 
-                    self.stats['processed_files'] += 1
+                    self.stats["processed_files"] += 1
                     progress.update(album_task, advance=1)
                 except Exception as e:
                     self.logger.error(f"Error processing album file {album_file}: {e}")
-                    self.stats['error_files'] += 1
+                    self.stats["error_files"] += 1
                     progress.update(album_task, advance=1)
 
         # Log final statistics
@@ -126,64 +131,188 @@ class MusicEnricher:
 
         return self.stats
 
-    def _process_artist_file(self, file_path: Path) -> bool:
+    def _process_artist_file(self, file_path: Path, current: int = 0, total: int = 0) -> bool:
         """
         Process a single artist markdown file for metadata enrichment.
 
         Args:
             file_path (Path): Path to the artist markdown file
+            current (int): Current artist being processed (for logging)
+            total (int): Total number of artists to be processed (for logging)
 
         Returns:
             bool: True if successfully processed, False otherwise
         """
-        mbid = extract_mbid_from_frontmatter(file_path)
-        if not mbid:
-            self.logger.warning(f"No MBID found in artist file: {file_path}")
-            return False
-
         try:
-            # Fetch artist metadata from MusicBrainz
-            artist_metadata = self.api_client.get_artist_metadata(mbid)
+            # Read the file's frontmatter
+            with open(file_path, "r", encoding="utf-8") as f:
+                post = frontmatter.load(f)
+
+            # Check if MBID already exists
+            mbid = post.get("musicbrainz_id") or post.get("mbid")
+
+            # If no MBID, search by name
+            if not mbid:
+                artist_name = post.get("name")
+                if not artist_name:
+                    self.logger.warning(f"No name found in artist file: {file_path}")
+                    return False
+
+                # Log progress with current index and artist name
+                if total > 0:
+                    self.logger.info(f"Processing artist {current} of {total}: {artist_name}")
+                else:
+                    self.logger.info(f"Processing artist: {artist_name}")
+
+                self.logger.info(f"Searching for artist: {artist_name}")
+                search_results = self.api_client.search_artist(artist_name, limit=1)
+
+                if not search_results:
+                    self.logger.warning(f"No MusicBrainz results found for artist: {artist_name}")
+                    # Log search failure with progress
+                    if total > 0:
+                        self.logger.warning(
+                            f"Search failed for artist {current} of {total}: {artist_name}"
+                        )
+                    return False
+
+                # Use the first search result
+                mbid = search_results[0]["mbid"]
+                self.logger.info(f"Found MBID {mbid} for artist: {artist_name}")
+
+            # Fetch full artist metadata from MusicBrainz
+            artist_metadata = self.api_client.get_artist_by_mbid(mbid)
+
+            if not artist_metadata:
+                # Log metadata fetch failure with progress
+                if total > 0:
+                    self.logger.warning(
+                        f"Failed to fetch metadata for artist {current} of {total}: {mbid}"
+                    )
+                else:
+                    self.logger.warning(f"Failed to fetch metadata for artist MBID: {mbid}")
+                return False
 
             # Write enriched metadata
             if not self.config.dry_run:
-                self.metadata_writer.update_artist_file(file_path, artist_metadata)
+                self.metadata_writer.update_artist_file(file_path, artist_metadata.model_dump())
+
+            # Log successful processing with progress
+            if total > 0:
+                self.logger.info(
+                    f"Successfully processed artist {current} of {total}: {artist_metadata.name}"
+                )
+            else:
+                self.logger.info(f"Successfully processed artist: {artist_metadata.name}")
 
             return True
         except Exception as e:
-            self.logger.error(f"Error enriching artist {mbid}: {e}")
+            # Log error with progress context
+            if total > 0:
+                self.logger.error(
+                    f"Error processing artist {current} of {total} file {file_path}: {e}"
+                )
+            else:
+                self.logger.error(f"Error enriching artist file {file_path}: {e}")
             return False
 
-    def _process_album_file(self, file_path: Path) -> bool:
+    def _process_album_file(self, file_path: Path, current: int = 0, total: int = 0) -> bool:
         """
         Process a single album markdown file for metadata enrichment.
 
         Args:
             file_path (Path): Path to the album markdown file
+            current (int): Current album being processed (for logging)
+            total (int): Total number of albums to be processed (for logging)
 
         Returns:
             bool: True if successfully processed, False otherwise
         """
-        mbid = extract_mbid_from_frontmatter(file_path)
-        if not mbid:
-            self.logger.warning(f"No MBID found in album file: {file_path}")
-            return False
-
         try:
-            # Fetch album metadata from MusicBrainz
-            album_metadata = self.api_client.get_album_metadata(mbid)
+            # Read the file's frontmatter
+            with open(file_path, "r", encoding="utf-8") as f:
+                post = frontmatter.load(f)
 
-            # Ensure artist is in Obsidian link format
-            if 'artist' in album_metadata:
-                album_metadata['artist'] = f"[[{album_metadata['artist']}]]"
+            # Check if MBID already exists
+            mbid = post.get("musicbrainz_id") or post.get("mbid")
+
+            # If no MBID, search by name
+            if not mbid:
+                album_name = post.get("name")
+                if not album_name:
+                    self.logger.warning(f"No name found in album file: {file_path}")
+                    return False
+
+                # Get artist name if available for better search accuracy
+                artist_name = post.get("artist")
+                if artist_name:
+                    # Remove Obsidian link formatting if present
+                    artist_name = artist_name.replace("[[", "").replace("]]", "")
+
+                # Log progress with current index and album name
+                if total > 0:
+                    self.logger.info(f"Processing album {current} of {total}: {album_name}")
+                else:
+                    self.logger.info(f"Processing album: {album_name}")
+
+                self.logger.info(
+                    f"Searching for album: {album_name}"
+                    + (f" by {artist_name}" if artist_name else "")
+                )
+                search_results = self.api_client.search_album(
+                    album_name, artist=artist_name, limit=1
+                )
+
+                if not search_results:
+                    self.logger.warning(f"No MusicBrainz results found for album: {album_name}")
+                    # Log search failure with progress
+                    if total > 0:
+                        self.logger.warning(
+                            f"Search failed for album {current} of {total}: {album_name}"
+                        )
+                    return False
+
+                # Use the first search result
+                mbid = search_results[0]["mbid"]
+                self.logger.info(f"Found MBID {mbid} for album: {album_name}")
+
+            # Fetch full album metadata from MusicBrainz
+            album_metadata = self.api_client.get_album_by_mbid(mbid)
+
+            if not album_metadata:
+                # Log metadata fetch failure with progress
+                if total > 0:
+                    self.logger.warning(
+                        f"Failed to fetch metadata for album {current} of {total}: {mbid}"
+                    )
+                else:
+                    self.logger.warning(f"Failed to fetch metadata for album MBID: {mbid}")
+                return False
+
+            # Convert to dict for metadata processing
+            album_dict = album_metadata.model_dump()
 
             # Write enriched metadata
             if not self.config.dry_run:
-                self.metadata_writer.update_album_file(file_path, album_metadata)
+                self.metadata_writer.update_album_file(file_path, album_dict)
+
+            # Log successful processing with progress
+            if total > 0:
+                self.logger.info(
+                    f"Successfully processed album {current} of {total}: {album_dict['name']}"
+                )
+            else:
+                self.logger.info(f"Successfully processed album: {album_dict['name']}")
 
             return True
         except Exception as e:
-            self.logger.error(f"Error enriching album {mbid}: {e}")
+            # Log error with progress context
+            if total > 0:
+                self.logger.error(
+                    f"Error processing album {current} of {total} file {file_path}: {e}"
+                )
+            else:
+                self.logger.error(f"Error enriching album file {file_path}: {e}")
             return False
 
     def _should_process_file(self, file_path: Path) -> bool:
@@ -196,12 +325,20 @@ class MusicEnricher:
         Returns:
             bool: True if file needs processing, False otherwise
         """
-        # Check if file has a valid MBID
-        mbid = extract_mbid_from_frontmatter(file_path)
-        if not mbid:
-            return False
+        try:
+            # Read the file's frontmatter
+            with open(file_path, "r", encoding="utf-8") as f:
+                post = frontmatter.load(f)
 
-        # Add more sophisticated checks if needed, e.g.:
-        # - Check if existing metadata is complete
-        # - Respect config settings for forced re-processing
-        return True
+            # Check if file has a name (required for searching)
+            name = post.get("name")
+            if not name:
+                return False
+
+            # If MBID already exists, we still process to enrich other fields
+            # Add more sophisticated checks if needed, e.g.:
+            # - Check if existing metadata is complete
+            # - Respect config settings for forced re-processing
+            return True
+        except Exception:
+            return False

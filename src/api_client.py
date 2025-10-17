@@ -61,11 +61,11 @@ class MusicBrainzClient:
         """
         try:
             self._enforce_rate_limit()
-            result = mb.get_artist_by_id(mbid, includes=["genres"])
+            result = mb.get_artist_by_id(mbid, includes=["tags"])
             artist = result["artist"]
 
             return ArtistMetadata(
-                mbid=mbid,
+                musicbrainz_id=mbid,
                 name=artist.get("name", ""),
                 disambiguation=artist.get("disambiguation"),
                 type=artist.get("type"),
@@ -91,7 +91,7 @@ class MusicBrainzClient:
         try:
             self._enforce_rate_limit()
             result = mb.get_release_by_id(
-                mbid, includes=["artists", "recordings", "genres"]
+                mbid, includes=["artists", "recordings", "tags"]
             )
             release = result["release"]
 
@@ -101,15 +101,13 @@ class MusicBrainzClient:
             ]
 
             return AlbumMetadata(
-                mbid=mbid,
+                musicbrainz_id=mbid,
                 title=release.get("title", ""),
+                artist=release["artist-credit"][0]["artist"]["name"],
                 artist_mbid=release["artist-credit"][0]["artist"]["id"],
-                artist_name=release["artist-credit"][0]["artist"]["name"],
-                type=release.get("primary-type"),
-                status=release.get("status"),
-                date=release.get("date"),
+                release_date=release.get("date"),
                 country=release.get("country"),
-                tracks=track_names,
+                track_count=len(track_names),
                 genres=[tag["name"] for tag in release.get("tag-list", [])],
             )
         except mb.MusicBrainzError as e:
