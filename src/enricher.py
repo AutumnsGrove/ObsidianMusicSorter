@@ -250,6 +250,12 @@ class MusicEnricher:
                 if artist_name:
                     # Remove Obsidian link formatting if present
                     artist_name = artist_name.replace("[[", "").replace("]]", "")
+                    # If pipe exists, take the display name (after pipe)
+                    if "|" in artist_name:
+                        artist_name = artist_name.split("|")[-1].strip()
+                    # If path exists, take the last part
+                    elif "/" in artist_name:
+                        artist_name = artist_name.split("/")[-1].strip()
 
                 # Log progress with current index and album name
                 if total > 0:
