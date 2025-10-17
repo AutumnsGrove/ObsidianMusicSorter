@@ -1,33 +1,65 @@
-# Obsidian Music Metadata Enricher
+# Music Metadata Enhancer
 
 ## Overview
-Brief description of what this tool does - enriches Obsidian markdown files for music artists and albums with MusicBrainz metadata while preserving existing content.
+A powerful tool that enriches Obsidian markdown files for music artists and albums with MusicBrainz metadata while preserving existing content.
 
 ## Features
 - Scans Obsidian vault for artist and album markdown files
 - Fetches metadata from MusicBrainz API
 - Updates YAML frontmatter while preserving existing notes
-- Rate-limited API calls (2 seconds between requests)
+- Rate-limited API calls
 - Dry-run mode for safe testing
 - Rich progress bars and logging
 
 ## Installation
 
+### As a UV Tool (Recommended)
+Install globally with UV:
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/ObsidianMusicSorter.git
-cd ObsidianMusicSorter
+uv tool install music-metadata-enhancer
+```
 
-# Install dependencies using UV
+### From Source
+```bash
+git clone https://github.com/AutumnsGrove/ObsidianMusicSorter.git
+cd ObsidianMusicSorter
 uv sync
 ```
 
 ## Usage
 
+### Quick Start
 ```bash
-# Coming in Phase 4 - CLI implementation
-uv run python -m src.cli enrich --vault-path ~/Obsidian/Vault
+# Scan your vault to see what would be processed
+music-metadata-enhancer scan ~/Obsidian/Vault
+
+# Or use the short alias
+mme scan ~/Obsidian/Vault
+
+# Dry run to see what would change
+mme enrich ~/Obsidian/Vault --dry-run
+
+# Enrich your vault for real
+mme enrich ~/Obsidian/Vault
 ```
+
+### Options
+```bash
+# Custom rate limiting (default: 2.0 seconds)
+mme enrich ~/Obsidian/Vault --rate-limit 3.0
+
+# Debug logging
+mme enrich ~/Obsidian/Vault --log-level DEBUG
+
+# Dry run mode
+mme enrich ~/Obsidian/Vault --dry-run
+```
+
+## How It Works
+1. Scan the Obsidian vault for markdown files related to artists and albums
+2. Use MusicBrainz API to fetch additional metadata
+3. Intelligently update YAML frontmatter without overwriting existing notes
+4. Provide detailed logging and optional dry-run mode for safety
 
 ## Configuration
 Environment variables:
@@ -37,10 +69,11 @@ Environment variables:
 - `MUSIC_SORTER_LOG_LEVEL`: Logging level (default: INFO)
 
 ## Project Status
-🚧 **Phase 1 Complete**: Core infrastructure (scanner, config, logging)
-🔄 **Phase 2 In Progress**: API integration
-⏳ **Phase 3 Pending**: Metadata writing
-⏳ **Phase 4 Pending**: CLI orchestrator
+**Status**: Complete and Ready for Use
+- ✅ Core infrastructure
+- ✅ API integration
+- ✅ Metadata writing
+- ✅ CLI orchestrator
 
 ## Development
 
